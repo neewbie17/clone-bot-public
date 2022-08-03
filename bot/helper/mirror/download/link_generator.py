@@ -8,6 +8,7 @@ from bot import (
     XSRF_TOKEN,
     laravel_session,
 )
+from bot.helper.others.bot_utils import *
 from bot.helper.others.exceptions import DirectDownloadLinkException
 import re
 import os
@@ -21,6 +22,19 @@ from lxml import etree
 from urllib.parse import urlparse, parse_qs
 import requests
 
+def direct_link_generator(link: str):
+    if is_gdtot_link(link):
+        return gdtot(link)
+    elif is_unified_link(link):
+        return unified(link)
+    elif is_udrive_link(link):
+        return udrive(link)
+    elif is_sharer_link(link):
+        return sharer_pw_dl(link)
+    elif is_drivehubs_link(link):
+        return drivehubs(link)
+    else:
+        raise DirectDownloadLinkException(f'No Direct link function found for {link}')
 
 def gdtot(url: str) -> str:
     if GDTOT_CRYPT is None:
@@ -132,10 +146,6 @@ def unified(url: str) -> str:
     if urlparse(url).netloc == "appdrive.in":
         flink = info_parsed["gdrive_link"]
         return flink
-    
-    elif urlparse(url).netloc == "gdflix.pro":
-        flink = info_parsed["gdrive_link"]
-        return flink
 
     elif urlparse(url).netloc == "driveapp.in":
         res = client.get(info_parsed["gdrive_link"])
@@ -172,10 +182,11 @@ def parse_info(res, url):
 
 
 def udrive(url: str) -> str:
-    if 'katdrive' in url:
+    if 'katdrive' or 'hubdrive' in url:
         client = requests.Session()
     else:
         client = cloudscraper.create_scraper(delay=10, browser='chrome')
+        
     if "hubdrive" in url:
         client.cookies.update({"crypt": HUBDRIVE_CRYPT})
     if "drivehub" in url:
